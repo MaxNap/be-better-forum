@@ -93,7 +93,7 @@ export default function ProfilePage() {
           {loading ? (
             <p>Loading...</p>
           ) : posts.length === 0 ? (
-            <p className="text-gray-500">You haven't written any posts yet.</p>
+            <p className="text-gray-500">You have not written any posts yet.</p>
           ) : (
             <ul className="space-y-4">
               {posts.map((post) => (
