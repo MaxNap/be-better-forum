@@ -3,13 +3,21 @@
 import { useUserAuth } from "../../_utils/auth-context";
 
 export default function LoginPage() {
-  const { user, gitHubSignIn, firebaseSignOut } = useUserAuth();
+  const { user, gitHubSignIn, googleSignIn, firebaseSignOut } = useUserAuth();
 
-  const handleLogin = async () => {
+  const handleGitHubLogin = async () => {
     try {
       await gitHubSignIn();
     } catch (error) {
       console.error("GitHub sign-in error:", error);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await googleSignIn();
+    } catch (error) {
+      console.error("Google sign-in error:", error);
     }
   };
 
@@ -40,12 +48,20 @@ export default function LoginPage() {
         ) : (
           <>
             <h1 className="text-2xl font-bold mb-6">Login to Be Better</h1>
-            <button
-              onClick={handleLogin}
-              className="w-full bg-black text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition"
-            >
-              Sign in with GitHub
-            </button>
+            <div className="space-y-4">
+              <button
+                onClick={handleGitHubLogin}
+                className="w-full bg-black text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition"
+              >
+                Sign in with GitHub
+              </button>
+              <button
+                onClick={handleGoogleLogin}
+                className="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition"
+              >
+                Sign in with Google
+              </button>
+            </div>
           </>
         )}
       </div>
