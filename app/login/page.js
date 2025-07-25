@@ -1,0 +1,54 @@
+"use client";
+
+import { useUserAuth } from "../../_utils/auth-context";
+
+export default function LoginPage() {
+  const { user, gitHubSignIn, firebaseSignOut } = useUserAuth();
+
+  const handleLogin = async () => {
+    try {
+      await gitHubSignIn();
+    } catch (error) {
+      console.error("GitHub sign-in error:", error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await firebaseSignOut();
+    } catch (error) {
+      console.error("Sign-out error:", error);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-black text-white flex items-center justify-center px-4">
+      <div className="bg-white text-black rounded-xl p-8 w-full max-w-md shadow text-center">
+        {user ? (
+          <>
+            <h1 className="text-2xl font-bold mb-4">
+              Welcome, {user.displayName}
+            </h1>
+            <p className="mb-6 text-sm text-gray-600">{user.email}</p>
+            <button
+              onClick={handleLogout}
+              className="w-full bg-black text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition"
+            >
+              Log Out
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold mb-6">Login to Be Better</h1>
+            <button
+              onClick={handleLogin}
+              className="w-full bg-black text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-800 transition"
+            >
+              Sign in with GitHub
+            </button>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
