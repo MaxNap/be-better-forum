@@ -59,12 +59,27 @@ export default function LoginPage() {
 
   const handleResetPassword = async () => {
     try {
+      if (!resetEmail.trim()) {
+        alert("Please enter your email address.");
+        return;
+      }
+
       await sendPasswordResetEmail(auth, resetEmail.trim());
-      setFeedbackMessage("Password reset email sent!");
-      setResetEmail("");
+      alert("Password reset email sent!");
       setShowReset(false);
+      setResetEmail("");
     } catch (error) {
-      setFeedbackMessage("Reset failed: " + error.message);
+      console.error("Reset error:", error.code, error.message);
+
+      if (error.code === "auth/user-not-found") {
+        alert("No user found with that email address.");
+      } else if (error.code === "auth/invalid-email") {
+        alert("Please enter a valid email address.");
+      } else if (error.code === "auth/too-many-requests") {
+        alert("Too many requests. Please try again later.");
+      } else {
+        alert("Error: " + error.message);
+      }
     }
   };
 

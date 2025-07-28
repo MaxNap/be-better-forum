@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUserAuth } from "../../_utils/auth-context";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { getAuth, sendEmailVerification } from "firebase/auth";
 import { db } from "../../_utils/firebase";
 
 export default function SignUpPage() {
@@ -23,7 +24,7 @@ export default function SignUpPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [usernameAvailable, setUsernameAvailable] = useState(null); // null | true | false
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
 
   const checkUsernameAvailability = async (inputUsername) => {
     setUsername(inputUsername);
@@ -38,7 +39,6 @@ export default function SignUpPage() {
       collection(db, "users"),
       where("username", "==", inputUsername.trim())
     );
-
     const querySnapshot = await getDocs(q);
     setUsernameAvailable(querySnapshot.empty);
   };
@@ -76,6 +76,14 @@ export default function SignUpPage() {
 
     try {
       await emailSignUp(email, password, username.trim());
+
+      // Send verification email
+      const auth = getAuth();
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+        alert("Verification email sent! Please check your inbox.");
+      }
+
       router.push("/profile");
     } catch (error) {
       console.error("Signup error:", error);
