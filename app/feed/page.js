@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { db } from "../../_utils/firebase";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  orderBy,
+  query,
+} from "firebase/firestore";
 
 export default function ForumFeedPage() {
   const [posts, setPosts] = useState([]);
@@ -12,11 +19,29 @@ export default function ForumFeedPage() {
     const fetchPosts = async () => {
       const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setPosts(data);
+
+      const postsWithUsernames = await Promise.all(
+        snapshot.docs.map(async (postDoc) => {
+          const postData = postDoc.data();
+          let username = "Unknown";
+
+          if (postData.authorId) {
+            const userDocRef = doc(db, "users", postData.authorId);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              username = userDoc.data().username || "Unknown";
+            }
+          }
+
+          return {
+            id: postDoc.id,
+            ...postData,
+            authorUsername: username,
+          };
+        })
+      );
+
+      setPosts(postsWithUsernames);
     };
 
     fetchPosts();
@@ -57,7 +82,7 @@ export default function ForumFeedPage() {
                 </p>
 
                 <p className="mt-4 text-sm text-gray-500">
-                  Posted by: {post.authorName || "Unknown"}
+                  Posted by: {post.authorUsername}
                 </p>
               </li>
             ))}

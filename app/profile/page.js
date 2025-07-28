@@ -13,7 +13,11 @@ import {
   orderBy,
   deleteDoc,
   doc,
+  getDoc,
+  setDoc,
+  updateDoc,
 } from "firebase/firestore";
+import { updateProfile } from "firebase/auth";
 
 export default function ProfilePage() {
   const { user } = useUserAuth();
@@ -21,14 +25,18 @@ export default function ProfilePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Redirect if not logged in
+  const [editMode, setEditMode] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [updateError, setUpdateError] = useState("");
+  const [updateSuccess, setUpdateSuccess] = useState("");
+
   useEffect(() => {
     if (user === null) {
       router.push("/login");
     }
   }, [user]);
 
-  // Fetch user posts
   useEffect(() => {
     if (user?.uid) {
       const fetchPosts = async () => {
@@ -38,8 +46,8 @@ export default function ProfilePage() {
           orderBy("createdAt", "desc")
         );
 
-        const querySnapshot = await getDocs(q);
-        const results = querySnapshot.docs.map((doc) => ({
+        const snapshot = await getDocs(q);
+        const results = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
@@ -52,7 +60,68 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // Handle delete
+  const checkUsernameAvailability = async (inputUsername) => {
+    setNewUsername(inputUsername.trim());
+    setUpdateSuccess("");
+    setUpdateError("");
+
+    if (!inputUsername.trim()) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users"),
+      where("username", "==", inputUsername.trim())
+    );
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty || snapshot.docs[0]?.id === user.uid) {
+      setUsernameAvailable(true);
+    } else {
+      setUsernameAvailable(false);
+    }
+  };
+
+  const handleUsernameUpdate = async () => {
+    setUpdateError("");
+    setUpdateSuccess("");
+
+    if (!newUsername.trim()) {
+      setUpdateError("Username cannot be empty.");
+      return;
+    }
+
+    if (usernameAvailable === false) {
+      setUpdateError("Username is already taken.");
+      return;
+    }
+
+    try {
+      await updateProfile(user, { displayName: newUsername });
+
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        await updateDoc(userRef, { username: newUsername });
+      } else {
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          username: newUsername,
+          createdAt: new Date(),
+        });
+      }
+
+      setUpdateSuccess("Username updated successfully!");
+      setEditMode(false);
+    } catch (error) {
+      console.error("Update error:", error);
+      setUpdateError("Failed to update username.");
+    }
+  };
+
   const handleDelete = async (postId) => {
     const confirmDelete = confirm("Are you sure you want to delete this post?");
     if (!confirmDelete) return;
@@ -71,9 +140,72 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-black text-white flex items-center justify-center px-4 py-12">
       <div className="bg-white text-black rounded-xl p-8 w-full max-w-2xl shadow">
         <h1 className="text-2xl font-bold mb-4 text-center">Your Profile</h1>
-        <p className="text-gray-700 mb-2 text-center">
-          Name: {user.displayName || "Anonymous"}
-        </p>
+
+        {/* Username Section */}
+        <div className="mb-4 text-center">
+          <div className="text-gray-700">
+            Username:{" "}
+            {!editMode ? (
+              <span className="font-semibold">{user.displayName}</span>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  className="border px-2 py-1 rounded w-2/3 mt-2"
+                  value={newUsername}
+                  onChange={(e) => checkUsernameAvailability(e.target.value)}
+                  placeholder="Enter new username"
+                />
+                {newUsername && (
+                  <div className="mt-1 text-sm">
+                    {usernameAvailable === true && (
+                      <span className="text-green-600">
+                        ✅ Username is available
+                      </span>
+                    )}
+                    {usernameAvailable === false && (
+                      <span className="text-red-600">❌ Username is taken</span>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {!editMode ? (
+            <button
+              onClick={() => {
+                setEditMode(true);
+                setNewUsername(user.displayName || "");
+              }}
+              className="mt-2 text-sm text-blue-600 hover:underline"
+            >
+              Edit Username
+            </button>
+          ) : (
+            <div className="flex flex-col items-center mt-2 space-y-2">
+              <button
+                onClick={handleUsernameUpdate}
+                className="bg-black text-white px-4 py-1 rounded hover:bg-gray-800 transition"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setEditMode(false)}
+                className="text-sm text-gray-600 hover:underline"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {updateError && (
+            <p className="text-red-600 text-sm mt-2">{updateError}</p>
+          )}
+          {updateSuccess && (
+            <p className="text-green-600 text-sm mt-2">{updateSuccess}</p>
+          )}
+        </div>
+
+        {/* Email */}
         <p className="text-gray-700 mb-6 text-center">Email: {user.email}</p>
 
         {/* New Post Button */}

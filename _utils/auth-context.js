@@ -6,43 +6,80 @@ import {
   signOut,
   onAuthStateChanged,
   GithubAuthProvider,
+  GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
-import { auth, googleProvider } from "./firebase";
+import { auth, db } from "./firebase";
+import {
+  doc,
+  setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 
+// Create Auth Context
 const AuthContext = createContext();
 
+// Auth Provider Wrapper
 export const AuthContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  // GitHub Auth
-  const gitHubSignIn = () => {
-    const provider = new GithubAuthProvider();
-    return signInWithPopup(auth, provider);
+  // GitHub Login
+  const gitHubSignIn = () => signInWithPopup(auth, new GithubAuthProvider());
+
+  // Google Login
+  const googleSignIn = () => signInWithPopup(auth, new GoogleAuthProvider());
+
+  // Email/Password Login
+  const emailSignIn = (email, password) =>
+    signInWithEmailAndPassword(auth, email, password);
+
+  // Email/Password Signup + Save Username
+  const emailSignUp = async (email, password, username) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      const user = userCredential.user;
+
+      // Set displayName for Firebase Auth
+      await updateProfile(user, {
+        displayName: username,
+      });
+
+      // Save to Firestore "users" collection
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email,
+        username,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error("Signup error:", error);
+      throw error;
+    }
   };
 
-  // Google Auth
-  const googleSignIn = () => {
-    return signInWithPopup(auth, googleProvider);
+  // Check if username already exists in Firestore
+  const isUsernameTaken = async (username) => {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("username", "==", username));
+    const snapshot = await getDocs(q);
+    return !snapshot.empty; // true if taken
   };
 
-  // Email/Password Sign In
-  const emailSignIn = (email, password) => {
-    return signInWithEmailAndPassword(auth, email, password);
-  };
+  // Sign out
+  const firebaseSignOut = () => signOut(auth);
 
-  // Email/Password Sign Up
-  const emailSignUp = (email, password) => {
-    return createUserWithEmailAndPassword(auth, email, password);
-  };
-
-  // Sign Out
-  const firebaseSignOut = () => {
-    return signOut(auth);
-  };
-
-  // Auth State Listener
+  // Firebase Auth State Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -59,6 +96,7 @@ export const AuthContextProvider = ({ children }) => {
         emailSignIn,
         emailSignUp,
         firebaseSignOut,
+        isUsernameTaken,
       }}
     >
       {children}
@@ -66,4 +104,5 @@ export const AuthContextProvider = ({ children }) => {
   );
 };
 
+// Custom Hook for easy access
 export const useUserAuth = () => useContext(AuthContext);
