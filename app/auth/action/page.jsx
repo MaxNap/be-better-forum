@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   getAuth,
@@ -9,7 +9,7 @@ import {
   confirmPasswordReset,
 } from "firebase/auth";
 
-export default function EmailActionPage() {
+function EmailActionHandler() {
   const auth = getAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,7 +31,6 @@ export default function EmailActionPage() {
     }
 
     if (mode === "verifyEmail") {
-      // Verify Email Flow
       applyActionCode(auth, oobCode)
         .then(() => {
           setStatus("success");
@@ -45,11 +44,8 @@ export default function EmailActionPage() {
           );
         });
     } else if (mode === "resetPassword") {
-      // Pre-validate password reset link
       verifyPasswordResetCode(auth, oobCode)
-        .then(() => {
-          setStatus("reset");
-        })
+        .then(() => setStatus("reset"))
         .catch((error) => {
           console.error("Password reset validation error:", error);
           setStatus("error");
@@ -146,5 +142,13 @@ export default function EmailActionPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function EmailActionPage() {
+  return (
+    <Suspense fallback={<p className="text-white p-4">Loading...</p>}>
+      <EmailActionHandler />
+    </Suspense>
   );
 }
