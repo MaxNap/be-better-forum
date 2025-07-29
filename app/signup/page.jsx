@@ -7,6 +7,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getAuth, sendEmailVerification } from "firebase/auth";
 import { db } from "../../_utils/firebase";
+import toast from "react-hot-toast";
 
 export default function SignUpPage() {
   const { emailSignUp } = useUserAuth();
@@ -77,17 +78,17 @@ export default function SignUpPage() {
     try {
       await emailSignUp(email, password, username.trim());
 
-      // Send verification email
       const auth = getAuth();
       if (auth.currentUser) {
         await sendEmailVerification(auth.currentUser);
-        alert("Verification email sent! Please check your inbox.");
+        toast.success("Verification email sent! Please check your inbox.");
       }
 
       router.push("/profile");
     } catch (error) {
       console.error("Signup error:", error);
       setAuthError(error.message || "Signup failed.");
+      toast.error(error.message || "Signup failed.");
     }
   };
 

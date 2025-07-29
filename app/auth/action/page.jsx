@@ -8,6 +8,7 @@ import {
   verifyPasswordResetCode,
   confirmPasswordReset,
 } from "firebase/auth";
+import toast from "react-hot-toast";
 
 function EmailActionHandler() {
   const auth = getAuth();
@@ -22,6 +23,9 @@ function EmailActionHandler() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
+  // Strong password rule
+  const isStrongPassword = (pw) => pw.length >= 8 && /\d/.test(pw);
 
   useEffect(() => {
     if (!mode || !oobCode) {
@@ -60,22 +64,26 @@ function EmailActionHandler() {
   const handleResetPassword = async () => {
     setPasswordError("");
 
-    if (newPassword !== confirmPassword) {
-      setPasswordError("Passwords do not match.");
+    if (!isStrongPassword(newPassword)) {
+      setPasswordError(
+        "Password must be at least 8 characters and include a number."
+      );
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters.");
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
       return;
     }
 
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
+      toast.success("✅ Password reset successful. You can now log in.");
       setStatus("success");
-      setMessage("✅ Password successfully reset! You can now log in.");
+      setMessage("Password reset successful.");
     } catch (error) {
       console.error("Reset error:", error);
-      setPasswordError("Failed to reset password. Try again.");
+      toast.error("❌ Failed to reset password.");
     }
   };
 
@@ -113,7 +121,8 @@ function EmailActionHandler() {
         {status === "reset" && (
           <div className="text-left space-y-4">
             <p className="text-sm text-gray-600">
-              Enter your new password below.
+              Enter your new password below. It must be at least 8 characters
+              and include a number.
             </p>
             <input
               type="password"
