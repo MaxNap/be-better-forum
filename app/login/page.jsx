@@ -131,7 +131,7 @@ export default function LoginPage() {
           </div>
           {authError && <p className="text-red-500 text-sm">{authError}</p>}
           <button className="w-full bg-black text-white font-semibold py-2 rounded-md hover:bg-gray-800 transition">
-            Sign in with Email
+            Sign in
           </button>
         </form>
 
@@ -197,7 +197,7 @@ export default function LoginPage() {
               onClick={handleResetPassword}
               className="w-full bg-black text-white font-semibold py-2 rounded-md hover:bg-gray-800 transition"
             >
-              Send Reset Email
+              Reset Email
             </button>
           </div>
         )}
