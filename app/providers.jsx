@@ -1,10 +1,16 @@
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <Toaster position="top-right" />
+        <Toaster
+          position="top-center"
+          richColors
+          expand={true}
+          closeButton={true}
+          duration={3000}
+        />
         {children}
       </body>
     </html>

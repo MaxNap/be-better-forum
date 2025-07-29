@@ -7,7 +7,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { getAuth, sendEmailVerification } from "firebase/auth";
 import { db } from "../../_utils/firebase";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function SignUpPage() {
   const { emailSignUp } = useUserAuth();

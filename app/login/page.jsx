@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUserAuth } from "../../_utils/auth-context";
 import { FaGithub, FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../_utils/firebase";
 
