@@ -117,12 +117,12 @@ export default function SignUpPage() {
             />
             {username && usernameAvailable === true && (
               <p className="text-green-600 text-sm mt-1">
-                ✅ Username is available
+                Username is available
               </p>
             )}
             {username && usernameAvailable === false && (
               <p className="text-red-600 text-sm mt-1">
-                ❌ Username is already taken
+                Username is already taken
               </p>
             )}
             {usernameError && (
@@ -179,14 +179,14 @@ export default function SignUpPage() {
                   password.length >= 8 ? "text-green-600" : "text-gray-500"
                 }
               >
-                {password.length >= 8 ? "✅" : "❌"} At least 8 characters
+                At least 8 characters
               </li>
               <li
                 className={
                   /\d/.test(password) ? "text-green-600" : "text-gray-500"
                 }
               >
-                {/\d/.test(password) ? "✅" : "❌"} Contains a number
+                Contains a number
               </li>
             </ul>
             {passwordError && (
@@ -234,8 +234,8 @@ export default function SignUpPage() {
                 }`}
               >
                 {password === confirmPassword
-                  ? "✅ Passwords match"
-                  : "❌ Passwords do not match"}
+                  ? "Passwords match"
+                  : "Passwords do not match"}
               </p>
             )}
             {confirmError && (

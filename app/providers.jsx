@@ -1,18 +1,16 @@
 import { Toaster } from "sonner";
 
-export default function RootLayout({ children }) {
+export default function Providers({ children }) {
   return (
-    <html lang="en">
-      <body>
-        <Toaster
-          position="top-center"
-          richColors
-          expand={true}
-          closeButton={true}
-          duration={3000}
-        />
-        {children}
-      </body>
-    </html>
+    <>
+      <Toaster
+        position="top-center"
+        richColors
+        expand={true}
+        closeButton={true}
+        duration={5000}
+      />
+      {children}
+    </>
   );
 }

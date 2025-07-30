@@ -33,7 +33,7 @@ function EmailActionHandler() {
   useEffect(() => {
     if (!mode || !oobCode) {
       setStatus("error");
-      setMessage("❌ Invalid or missing link parameters.");
+      setMessage("Invalid or missing link parameters.");
       return;
     }
 
@@ -41,13 +41,13 @@ function EmailActionHandler() {
       applyActionCode(auth, oobCode)
         .then(() => {
           setStatus("success");
-          setMessage("✅ Email successfully verified! You can now log in.");
+          setMessage("Email successfully verified! You can now log in.");
         })
         .catch((error) => {
           console.error("Email verification error:", error);
           setStatus("error");
           setMessage(
-            "❌ Verification failed. The link may be expired or invalid."
+            "Verification failed. The link may be expired or invalid."
           );
         });
     } else if (mode === "resetPassword") {
@@ -56,11 +56,11 @@ function EmailActionHandler() {
         .catch((error) => {
           console.error("Password reset validation error:", error);
           setStatus("error");
-          setMessage("❌ Password reset link is invalid or expired.");
+          setMessage("Password reset link is invalid or expired.");
         });
     } else {
       setStatus("error");
-      setMessage("❌ Unsupported action.");
+      setMessage("Unsupported action.");
     }
   }, [mode, oobCode]);
 
@@ -81,12 +81,12 @@ function EmailActionHandler() {
 
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
-      toast.success("✅ Password reset successful. You can now log in.");
+      toast.success("Password reset successful. You can now log in.");
       setStatus("success");
       setMessage("Password reset successful.");
     } catch (error) {
       console.error("Reset error:", error);
-      toast.error("❌ Failed to reset password.");
+      toast.error("Failed to reset password.");
     }
   };
 
@@ -167,17 +167,17 @@ function EmailActionHandler() {
               <ul className="text-sm mt-2 space-y-1">
                 <li
                   className={
-                    newPassword.length >= 8 ? "text-green-600" : "text-gray-500"
+                    password.length >= 8 ? "text-green-600" : "text-gray-500"
                   }
                 >
-                  {newPassword.length >= 8 ? "✅" : "❌"} At least 8 characters
+                  At least 8 characters
                 </li>
                 <li
                   className={
-                    /\d/.test(newPassword) ? "text-green-600" : "text-gray-500"
+                    /\d/.test(password) ? "text-green-600" : "text-gray-500"
                   }
                 >
-                  {/\d/.test(newPassword) ? "✅" : "❌"} Contains a number
+                  Contains a number
                 </li>
               </ul>
             </div>
@@ -221,8 +221,8 @@ function EmailActionHandler() {
                   }`}
                 >
                   {newPassword === confirmPassword
-                    ? "✅ Passwords match"
-                    : "❌ Passwords do not match"}
+                    ? "Passwords match"
+                    : "Passwords do not match"}
                 </p>
               )}
             </div>
