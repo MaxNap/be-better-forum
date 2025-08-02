@@ -7,7 +7,8 @@ import { FaGithub, FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa";
 import Link from "next/link";
 import { toast } from "sonner";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../../_utils/firebase";
+import { auth, db } from "../../_utils/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,26 +41,37 @@ export default function LoginPage() {
   };
 
   const handleResetPassword = async () => {
+    if (!resetEmail.trim()) {
+      toast.error("Please enter your email.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(resetEmail.trim())) {
+      toast.error("Invalid email address.");
+      return;
+    }
+
     try {
-      if (!resetEmail.trim()) {
-        toast.error("Please enter your email.");
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("email", "==", resetEmail.trim()));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast.error("No account found with that email.");
         return;
       }
 
       await sendPasswordResetEmail(auth, resetEmail.trim());
-      toast.success("Reset email sent!");
+      toast.success("Reset email sent! Please check your inbox.");
       setResetEmail("");
       setShowReset(false);
     } catch (error) {
       console.error("Reset error:", error.code);
-      if (error.code === "auth/user-not-found") {
-        toast.error("No user found with that email.");
-      } else if (error.code === "auth/invalid-email") {
-        toast.error("Invalid email address.");
-      } else if (error.code === "auth/too-many-requests") {
+      if (error.code === "auth/too-many-requests") {
         toast.error("Too many requests. Try again later.");
       } else {
-        toast.error(error.message);
+        toast.error("Something went wrong. Please try again.");
       }
     }
   };
@@ -197,7 +209,7 @@ export default function LoginPage() {
               onClick={handleResetPassword}
               className="w-full bg-black text-white font-semibold py-2 rounded-md hover:bg-gray-800 transition"
             >
-              Reset Email
+              Reset Password
             </button>
           </div>
         )}

@@ -81,10 +81,13 @@ export default function SignUpPage() {
       const auth = getAuth();
       if (auth.currentUser) {
         await sendEmailVerification(auth.currentUser);
-        toast.success("Verification email sent! Please check your inbox.");
+        toast.success(
+          "Verification email sent. Please check your spam folder and verify your email before logging in."
+        );
+        await auth.signOut();
       }
 
-      router.push("/profile");
+      router.push("/login");
     } catch (error) {
       console.error("Signup error:", error);
       setAuthError(error.message || "Signup failed.");
