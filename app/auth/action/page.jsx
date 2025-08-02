@@ -167,14 +167,14 @@ function EmailActionHandler() {
               <ul className="text-sm mt-2 space-y-1">
                 <li
                   className={
-                    password.length >= 8 ? "text-green-600" : "text-gray-500"
+                    newPassword.length >= 8 ? "text-green-600" : "text-gray-500"
                   }
                 >
                   At least 8 characters
                 </li>
                 <li
                   className={
-                    /\d/.test(password) ? "text-green-600" : "text-gray-500"
+                    /\d/.test(newPassword) ? "text-green-600" : "text-gray-500"
                   }
                 >
                   Contains a number

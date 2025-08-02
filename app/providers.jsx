@@ -8,7 +8,7 @@ export default function Providers({ children }) {
         richColors
         expand={true}
         closeButton={true}
-        duration={5000}
+        duration={10000}
       />
       {children}
     </>

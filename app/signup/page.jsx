@@ -90,8 +90,21 @@ export default function SignUpPage() {
       router.push("/login");
     } catch (error) {
       console.error("Signup error:", error);
-      setAuthError(error.message || "Signup failed.");
-      toast.error(error.message || "Signup failed.");
+      setAuthError("");
+
+      if (error.code === "auth/email-already-in-use") {
+        toast.error(
+          "This email is already in use. Try to sign in or use a different email."
+        );
+      } else if (error.code === "auth/invalid-email") {
+        toast.error("Please enter a valid email address.");
+      } else if (error.code === "auth/weak-password") {
+        toast.error(
+          "Password is too weak. Use at least 8 characters including a number."
+        );
+      } else {
+        toast.error("Signup failed. Please try again.");
+      }
     }
   };
 
