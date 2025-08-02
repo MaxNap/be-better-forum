@@ -81,7 +81,7 @@ function EmailActionHandler() {
 
     try {
       await confirmPasswordReset(auth, oobCode, newPassword);
-      toast.success("Password reset successful. You can now log in.");
+      toast.success("Password reset successful.");
       setStatus("success");
       setMessage("Password reset successful.");
     } catch (error) {
@@ -93,7 +93,9 @@ function EmailActionHandler() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-white px-4">
       <div className="bg-white text-black p-6 rounded-xl text-center shadow max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-4">Password Reset</h1>
+        <h1 className="text-2xl font-bold mb-4">
+          {mode === "verifyEmail" ? "Email Verification" : "Password Reset"}
+        </h1>
 
         {status === "loading" && <p className="text-lg">{message}</p>}
 

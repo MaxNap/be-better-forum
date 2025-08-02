@@ -63,7 +63,7 @@ export default function LoginPage() {
       }
 
       await sendPasswordResetEmail(auth, resetEmail.trim());
-      toast.success("Reset email sent! Please check your inbox.");
+      toast.success("Reset email sent! Please check your spam folder.");
       setResetEmail("");
       setShowReset(false);
     } catch (error) {
@@ -143,7 +143,7 @@ export default function LoginPage() {
           </div>
           {authError && <p className="text-red-500 text-sm">{authError}</p>}
           <button className="w-full bg-black text-white font-semibold py-2 rounded-md hover:bg-gray-800 transition">
-            Sign in
+            Login
           </button>
         </form>
 
