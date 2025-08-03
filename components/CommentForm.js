@@ -1,15 +1,23 @@
-"use client"; // Required if you’ll later handle form submission in the browser
+"use client";
 
 import { useState } from "react";
 
 export default function CommentForm({ onSubmit }) {
   const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!comment.trim()) return;
-    onSubmit(comment);
-    setComment(""); // Clear after submit
+    const trimmed = comment.trim();
+    if (!trimmed) return;
+
+    setSubmitting(true);
+    try {
+      await onSubmit(trimmed);
+      setComment("");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -28,12 +36,18 @@ export default function CommentForm({ onSubmit }) {
         placeholder="Write something thoughtful..."
         className="w-full px-4 py-2 rounded-lg border border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-black"
         required
+        disabled={submitting}
       />
       <button
         type="submit"
-        className="mt-3 bg-white text-black font-semibold px-4 py-2 rounded-lg hover:bg-gray-200 transition"
+        disabled={submitting}
+        className={`mt-3 font-semibold px-4 py-2 rounded-lg transition ${
+          submitting
+            ? "bg-gray-400 text-white cursor-not-allowed"
+            : "bg-white text-black hover:bg-gray-200"
+        }`}
       >
-        Post Comment
+        {submitting ? "Posting..." : "Post Comment"}
       </button>
     </form>
   );
