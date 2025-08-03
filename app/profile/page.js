@@ -34,8 +34,10 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user === null) {
       router.push("/login");
+    } else if (!user.displayName) {
+      router.push("/set-username");
     }
-  }, [user]);
+  }, [user, router]);
 
   useEffect(() => {
     if (user?.uid) {
