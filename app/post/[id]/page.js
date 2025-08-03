@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -9,12 +10,15 @@ import {
   where,
   getDocs,
   addDoc,
+  updateDoc,
   serverTimestamp,
+  increment,
 } from "firebase/firestore";
 import { db } from "../../../_utils/firebase";
 import { useUserAuth } from "../../../_utils/auth-context";
 import Comment from "../../../components/Comment";
 import CommentForm from "../../../components/CommentForm";
+import { FaHeart, FaRegHeart, FaComment } from "react-icons/fa";
 
 export default function PostPage() {
   const { id } = useParams();
@@ -23,12 +27,18 @@ export default function PostPage() {
 
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     const fetchPost = async () => {
       const postRef = doc(db, "posts", id);
       const postSnap = await getDoc(postRef);
-      if (postSnap.exists()) setPost({ id: postSnap.id, ...postSnap.data() });
+      if (postSnap.exists()) {
+        const data = postSnap.data();
+        setPost({ id: postSnap.id, ...data });
+        setLikeCount(data.likes || 0);
+      }
     };
 
     const fetchComments = async () => {
@@ -56,7 +66,6 @@ export default function PostPage() {
       createdAt: serverTimestamp(),
     });
 
-    // Reload comments
     const snapshot = await getDocs(
       query(collection(db, "comments"), where("postId", "==", id))
     );
@@ -64,12 +73,22 @@ export default function PostPage() {
     setComments(result);
   };
 
+  const handleLike = async () => {
+    if (!user) return router.push("/login");
+    if (liked) return;
+
+    const postRef = doc(db, "posts", id);
+    await updateDoc(postRef, { likes: increment(1) });
+    setLiked(true);
+    setLikeCount((prev) => prev + 1);
+  };
+
   if (!post) return <p className="text-white p-8">Loading post...</p>;
 
   return (
     <main className="min-h-screen bg-black text-white flex justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
-        {/* Back to Feed Button */}
+        {/* Back Button */}
         <div className="mb-8">
           <button
             onClick={() => router.push("/feed")}
@@ -98,23 +117,38 @@ export default function PostPage() {
           </div>
         </section>
 
-        <hr className="border-gray-700 mb-10" />
+        <hr className="border-gray-700 mb-6" />
 
         {/* Post Body */}
-        <section className="text-lg leading-relaxed text-gray-200 mb-12 whitespace-pre-line">
+        <section className="text-lg leading-relaxed text-gray-200 mb-6 whitespace-pre-line">
           {post.body}
         </section>
 
+        {/* Reactions */}
+        <div className="flex items-center gap-6 mb-12">
+          <button
+            onClick={handleLike}
+            disabled={!user || liked}
+            className="flex items-center gap-2 text-white hover:text-red-500 disabled:opacity-50"
+          >
+            {liked ? <FaHeart /> : <FaRegHeart />} {likeCount}
+          </button>
+          <div className="flex items-center gap-2 text-white">
+            <FaComment /> {comments.length}
+          </div>
+        </div>
+
         <hr className="border-gray-700 mb-10" />
 
-        {/* Comments Section */}
+        {/* Comments */}
         <section>
-          <h2 className="text-2xl font-semibold mb-6">Comments</h2>
+          <h2 className="text-2xl font-semibold mb-4">Comments</h2>
 
           <div className="space-y-4 mb-6">
             {comments.map((comment) => (
               <Comment
                 key={comment.id}
+                id={comment.id}
                 author={comment.author}
                 text={comment.text}
               />
@@ -132,7 +166,7 @@ export default function PostPage() {
               >
                 log in
               </span>{" "}
-              to comment.
+              to comment or like.
             </p>
           )}
         </section>

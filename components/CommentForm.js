@@ -34,10 +34,11 @@ export default function CommentForm({ onSubmit }) {
         onChange={(e) => setComment(e.target.value)}
         rows={3}
         placeholder="Write something thoughtful..."
-        className="w-full px-4 py-2 rounded-lg border border-gray-300 text-black focus:outline-none focus:ring-2 focus:ring-black"
+        className="w-full px-4 py-2 rounded-lg bg-white text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
         required
         disabled={submitting}
       />
+
       <button
         type="submit"
         disabled={submitting}
