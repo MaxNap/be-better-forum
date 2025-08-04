@@ -8,7 +8,7 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   addDoc,
   updateDoc,
   serverTimestamp,
@@ -41,18 +41,23 @@ export default function PostPage() {
       }
     };
 
-    const fetchComments = async () => {
-      const q = query(collection(db, "comments"), where("postId", "==", id));
-      const snapshot = await getDocs(q);
-      const result = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setComments(result);
-    };
+    const unsubscribe = onSnapshot(
+      query(collection(db, "comments"), where("postId", "==", id)),
+      (snapshot) => {
+        const result = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setComments(result);
+      },
+      (error) => {
+        console.error("Error listening to comments:", error);
+      }
+    );
 
     fetchPost();
-    fetchComments();
+
+    return () => unsubscribe();
   }, [id]);
 
   const handleNewComment = async (text) => {
@@ -60,17 +65,11 @@ export default function PostPage() {
 
     await addDoc(collection(db, "comments"), {
       postId: id,
-      author: user.email,
+      author: user.displayName || user.email,
       authorId: user.uid,
       text,
       createdAt: serverTimestamp(),
     });
-
-    const snapshot = await getDocs(
-      query(collection(db, "comments"), where("postId", "==", id))
-    );
-    const result = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    setComments(result);
   };
 
   const handleLike = async () => {
