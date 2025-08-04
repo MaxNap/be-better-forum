@@ -1,74 +1,53 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../_utils/firebase";
 import {
   doc,
-  getDoc,
   updateDoc,
-  arrayUnion,
-  arrayRemove,
   deleteDoc,
+  getDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { useUserAuth } from "../_utils/auth-context";
-import { FaHeart, FaRegHeart, FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash } from "react-icons/fa";
+import LikeButton from "./LikeButton";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 export default function Comment({ id, author, text }) {
   const { user } = useUserAuth();
-  const [likes, setLikes] = useState([]);
-  const [hasLiked, setHasLiked] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(text);
+  const [createdAt, setCreatedAt] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
 
   useEffect(() => {
-    const fetchLikes = async () => {
-      try {
-        const ref = doc(db, "comments", id);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          const likesList = Array.isArray(data.likes) ? data.likes : [];
-          setLikes(likesList);
-          setHasLiked(user ? likesList.includes(user.uid) : false);
-        }
-      } catch (err) {
-        console.error("Failed to fetch likes:", err);
-        setLikes([]);
+    const fetchTimestamps = async () => {
+      const ref = doc(db, "comments", id);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data();
+        setCreatedAt(data.createdAt?.toDate());
+        setUpdatedAt(data.updatedAt?.toDate());
       }
     };
-    fetchLikes();
-  }, [id, user]);
 
-  const toggleLike = async () => {
-    if (!user) return alert("You must log in to like comments.");
-    const ref = doc(db, "comments", id);
-
-    try {
-      if (hasLiked) {
-        await updateDoc(ref, {
-          likes: arrayRemove(user.uid),
-        });
-        setLikes((prev) => prev.filter((uid) => uid !== user.uid));
-        setHasLiked(false);
-      } else {
-        await updateDoc(ref, {
-          likes: arrayUnion(user.uid),
-        });
-        setLikes((prev) => [...prev, user.uid]);
-        setHasLiked(true);
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-    }
-  };
+    fetchTimestamps();
+  }, [id]);
 
   const saveEdit = async () => {
     const ref = doc(db, "comments", id);
     try {
-      await updateDoc(ref, { text: editText.trim() });
+      await updateDoc(ref, {
+        text: editText.trim(),
+        updatedAt: serverTimestamp(),
+      });
       setIsEditing(false);
+      toast.success("Comment updated");
     } catch (error) {
       console.error("Error updating comment:", error);
+      toast.error("Failed to update comment");
     }
   };
 
@@ -77,8 +56,10 @@ export default function Comment({ id, author, text }) {
     if (!confirmed) return;
     try {
       await deleteDoc(doc(db, "comments", id));
+      toast.success("Comment deleted");
     } catch (error) {
       console.error("Failed to delete comment:", error);
+      toast.error("Failed to delete comment");
     }
   };
 
@@ -113,16 +94,24 @@ export default function Comment({ id, author, text }) {
       ) : (
         <>
           <p className="text-sm text-gray-800">{text}</p>
-          <div className="text-xs text-gray-500 mt-2">by {author}</div>
-          <div className="flex items-center gap-4 mt-2">
-            <button
-              onClick={toggleLike}
-              className="text-sm text-gray-600 flex items-center gap-1 hover:text-red-600 transition"
-            >
-              {hasLiked ? <FaHeart className="text-red-600" /> : <FaRegHeart />}
-              <span>{likes.length}</span>
-            </button>
 
+          <div className="text-xs text-gray-500 mt-2 flex flex-wrap gap-2 items-center">
+            <span>by {author}</span>
+            {createdAt && (
+              <span>
+                • {formatDistanceToNow(createdAt, { addSuffix: true })}
+              </span>
+            )}
+            {updatedAt && updatedAt > createdAt && (
+              <span className="text-blue-500 font-semibold">• Edited</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 mt-2">
+            {/* ✅ Like button */}
+            <LikeButton type="comment" id={id} />
+
+            {/* ✅ Edit & Delete buttons (only for comment owner) */}
             {user?.displayName === author && (
               <>
                 <button

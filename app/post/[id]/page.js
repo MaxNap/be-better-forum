@@ -10,15 +10,17 @@ import {
   where,
   onSnapshot,
   addDoc,
-  updateDoc,
   serverTimestamp,
-  increment,
+  getDocs,
+  setDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../../_utils/firebase";
 import { useUserAuth } from "../../../_utils/auth-context";
 import Comment from "../../../components/Comment";
 import CommentForm from "../../../components/CommentForm";
 import { FaHeart, FaRegHeart, FaComment } from "react-icons/fa";
+import LikeButton from "../../../components/LikeButton";
 
 export default function PostPage() {
   const { id } = useParams();
@@ -29,6 +31,7 @@ export default function PostPage() {
   const [comments, setComments] = useState([]);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [likeDocId, setLikeDocId] = useState(null); // For deleting like
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -37,11 +40,12 @@ export default function PostPage() {
       if (postSnap.exists()) {
         const data = postSnap.data();
         setPost({ id: postSnap.id, ...data });
-        setLikeCount(data.likes || 0);
       }
     };
 
-    const unsubscribe = onSnapshot(
+    fetchPost();
+
+    const unsubscribeComments = onSnapshot(
       query(collection(db, "comments"), where("postId", "==", id)),
       (snapshot) => {
         const result = snapshot.docs.map((doc) => ({
@@ -49,16 +53,38 @@ export default function PostPage() {
           ...doc.data(),
         }));
         setComments(result);
-      },
-      (error) => {
-        console.error("Error listening to comments:", error);
       }
     );
 
-    fetchPost();
+    const unsubscribeLikes = onSnapshot(
+      query(
+        collection(db, "likes"),
+        where("postId", "==", id),
+        where("type", "==", "post")
+      ),
+      (snapshot) => {
+        setLikeCount(snapshot.size);
 
-    return () => unsubscribe();
-  }, [id]);
+        if (user) {
+          const userLike = snapshot.docs.find(
+            (doc) => doc.data().userId === user.uid
+          );
+          if (userLike) {
+            setLiked(true);
+            setLikeDocId(userLike.id);
+          } else {
+            setLiked(false);
+            setLikeDocId(null);
+          }
+        }
+      }
+    );
+
+    return () => {
+      unsubscribeComments();
+      unsubscribeLikes();
+    };
+  }, [id, user]);
 
   const handleNewComment = async (text) => {
     if (!user) return router.push("/login");
@@ -74,12 +100,19 @@ export default function PostPage() {
 
   const handleLike = async () => {
     if (!user) return router.push("/login");
-    if (liked) return;
 
-    const postRef = doc(db, "posts", id);
-    await updateDoc(postRef, { likes: increment(1) });
-    setLiked(true);
-    setLikeCount((prev) => prev + 1);
+    const likesRef = collection(db, "likes");
+
+    if (liked && likeDocId) {
+      await deleteDoc(doc(db, "likes", likeDocId));
+    } else {
+      await addDoc(likesRef, {
+        userId: user.uid,
+        postId: id,
+        type: "post",
+        createdAt: serverTimestamp(),
+      });
+    }
   };
 
   if (!post) return <p className="text-white p-8">Loading post...</p>;
@@ -125,13 +158,8 @@ export default function PostPage() {
 
         {/* Reactions */}
         <div className="flex items-center gap-6 mb-12">
-          <button
-            onClick={handleLike}
-            disabled={!user || liked}
-            className="flex items-center gap-2 text-white hover:text-red-500 disabled:opacity-50"
-          >
-            {liked ? <FaHeart /> : <FaRegHeart />} {likeCount}
-          </button>
+          <LikeButton type="post" id={post.id} />
+
           <div className="flex items-center gap-2 text-white">
             <FaComment /> {comments.length}
           </div>
@@ -144,14 +172,18 @@ export default function PostPage() {
           <h2 className="text-2xl font-semibold mb-4">Comments</h2>
 
           <div className="space-y-4 mb-6">
-            {comments.map((comment) => (
-              <Comment
-                key={comment.id}
-                id={comment.id}
-                author={comment.author}
-                text={comment.text}
-              />
-            ))}
+            {comments.length === 0 ? (
+              <p className="text-gray-400 text-sm italic">No comments yet.</p>
+            ) : (
+              comments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  id={comment.id}
+                  author={comment.author}
+                  text={comment.text}
+                />
+              ))
+            )}
           </div>
 
           {user ? (
