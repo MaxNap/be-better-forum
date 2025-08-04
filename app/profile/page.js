@@ -18,6 +18,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const { user } = useUserAuth();
@@ -125,15 +126,41 @@ export default function ProfilePage() {
   };
 
   const handleDelete = async (postId) => {
-    const confirmDelete = confirm("Are you sure you want to delete this post?");
-    if (!confirmDelete) return;
+    toast(
+      (t) => (
+        <div className="flex flex-col">
+          <p className="mb-2">Are you sure you want to delete this post?</p>
+          <div className="flex gap-4">
+            <button
+              onClick={async () => {
+                toast.dismiss(t);
 
-    try {
-      await deleteDoc(doc(db, "posts", postId));
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-    } catch (error) {
-      console.error("Failed to delete post:", error);
-    }
+                try {
+                  await deleteDoc(doc(db, "posts", postId));
+                  setPosts((prev) => prev.filter((p) => p.id !== postId));
+                  toast.success("Post deleted successfully");
+                } catch (error) {
+                  console.error("Failed to delete post:", error);
+                  toast.error("Failed to delete post");
+                }
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+            >
+              Yes, Delete
+            </button>
+            <button
+              onClick={() => toast.dismiss(t)}
+              className="px-3 py-1 bg-gray-300 text-black rounded text-sm hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // user must confirm or cancel
+      }
+    );
   };
 
   if (user === null) return null;

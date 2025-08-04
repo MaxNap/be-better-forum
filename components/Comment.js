@@ -52,15 +52,40 @@ export default function Comment({ id, author, text }) {
   };
 
   const handleDelete = async () => {
-    const confirmed = confirm("Are you sure you want to delete this comment?");
-    if (!confirmed) return;
-    try {
-      await deleteDoc(doc(db, "comments", id));
-      toast.success("Comment deleted");
-    } catch (error) {
-      console.error("Failed to delete comment:", error);
-      toast.error("Failed to delete comment");
-    }
+    toast(
+      (t) => (
+        <div className="flex flex-col">
+          <p className="mb-2">Are you sure you want to delete this comment?</p>
+          <div className="flex gap-4">
+            <button
+              onClick={async () => {
+                toast.dismiss(t); // Close this toast
+
+                try {
+                  await deleteDoc(doc(db, "comments", id));
+                  toast.success("Comment deleted");
+                } catch (error) {
+                  console.error("Failed to delete comment:", error);
+                  toast.error("Failed to delete comment");
+                }
+              }}
+              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+            >
+              Yes, Delete
+            </button>
+            <button
+              onClick={() => toast.dismiss(t)}
+              className="px-3 py-1 bg-gray-300 text-black rounded text-sm hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // stay open until user clicks
+      }
+    );
   };
 
   return (
@@ -108,10 +133,10 @@ export default function Comment({ id, author, text }) {
           </div>
 
           <div className="flex items-center gap-4 mt-2">
-            {/* ✅ Like button */}
+            {/* Like button */}
             <LikeButton type="comment" id={id} />
 
-            {/* ✅ Edit & Delete buttons (only for comment owner) */}
+            {/* Edit & Delete buttons (only for comment owner) */}
             {user?.displayName === author && (
               <>
                 <button
