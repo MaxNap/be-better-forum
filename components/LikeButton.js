@@ -1,73 +1,96 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FaHeart, FaRegHeart } from "react-icons/fa";
 import {
+  collection,
+  addDoc,
+  query,
+  where,
+  deleteDoc,
+  onSnapshot,
   doc,
-  getDoc,
-  updateDoc,
-  arrayUnion,
-  arrayRemove,
-  increment,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../_utils/firebase";
 import { useUserAuth } from "../_utils/auth-context";
-import { useRouter } from "next/navigation";
+import { FaHeart, FaRegHeart } from "react-icons/fa";
+import { toast } from "sonner";
+import clsx from "clsx";
 
 export default function LikeButton({ type, id }) {
   const { user } = useUserAuth();
-  const router = useRouter();
-
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-
-  const ref = doc(db, type === "post" ? "posts" : "comments", id);
+  const [likeDocId, setLikeDocId] = useState(null);
+  const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
-    const fetchLikes = async () => {
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data();
-        const likedBy = data.likedBy || [];
-        setLiked(user ? likedBy.includes(user.uid) : false);
-        setLikeCount(data.likes || 0);
+    const q = query(
+      collection(db, "likes"),
+      where("type", "==", type),
+      where(type === "post" ? "postId" : "commentId", "==", id)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setLikeCount(snapshot.size);
+
+      if (user) {
+        const userLike = snapshot.docs.find(
+          (doc) => doc.data().userId === user.uid
+        );
+        if (userLike) {
+          setLiked(true);
+          setLikeDocId(userLike.id);
+        } else {
+          setLiked(false);
+          setLikeDocId(null);
+        }
       }
-    };
-    fetchLikes();
-  }, [ref, user]);
+    });
 
-  const handleToggleLike = async () => {
-    if (!user) return router.push("/login");
+    return () => unsubscribe();
+  }, [type, id, user]);
 
-    const snap = await getDoc(ref);
-    const data = snap.data();
-    const likedBy = data.likedBy || [];
+  const handleLike = async () => {
+    if (!user) return toast.error("You must log in to like.");
 
-    if (likedBy.includes(user.uid)) {
-      await updateDoc(ref, {
-        likedBy: arrayRemove(user.uid),
-        likes: increment(-1),
-      });
-      setLiked(false);
-      setLikeCount((prev) => prev - 1);
-    } else {
-      await updateDoc(ref, {
-        likedBy: arrayUnion(user.uid),
-        likes: increment(1),
-      });
-      setLiked(true);
-      setLikeCount((prev) => prev + 1);
+    const likesRef = collection(db, "likes");
+
+    try {
+      if (liked && likeDocId) {
+        await deleteDoc(doc(db, "likes", likeDocId));
+        setLiked(false);
+      } else {
+        await addDoc(likesRef, {
+          userId: user.uid,
+          type,
+          createdAt: serverTimestamp(),
+          ...(type === "post" ? { postId: id } : { commentId: id }),
+        });
+        setLiked(true);
+        setAnimating(true);
+        setTimeout(() => setAnimating(false), 300); // End animation
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      toast.error("Failed to toggle like.");
     }
   };
 
   return (
     <button
-      onClick={handleToggleLike}
-      className={`flex items-center gap-2 ${
-        liked ? "text-red-600" : "text-gray-600 hover:text-red-500"
-      }`}
+      onClick={handleLike}
+      disabled={!user}
+      className={clsx(
+        "text-sm flex items-center gap-1 transition",
+        liked ? "text-red-600" : "text-gray-600 hover:text-red-600",
+        animating && "animate-heart"
+      )}
     >
-      {liked ? <FaHeart /> : <FaRegHeart />} {likeCount}
+      <span className={clsx(animating && "animate-heart")}>
+        {liked ? <FaHeart className="text-red-600" /> : <FaRegHeart />}
+      </span>
+      <span>{likeCount}</span>
     </button>
   );
 }
