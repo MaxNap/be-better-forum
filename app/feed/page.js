@@ -76,9 +76,9 @@ export default function ForumFeedPage() {
       : posts;
 
   return (
-    <main className="min-h-screen bg-black text-white py-12 px-6 relative">
-      {/* Fixed Filter Sidebar */}
-      <aside className="w-60 fixed left-6 top-24 bg-white text-black p-6 rounded-xl shadow h-fit">
+    <main className="min-h-screen bg-black text-white py-12 px-6 flex">
+      {/* Fixed Left Filter Sidebar */}
+      <aside className="w-60 h-fit sticky top-24 bg-white text-black p-6 rounded-xl shadow self-start">
         <h2 className="text-xl font-bold mb-4">Filters</h2>
         <ul className="space-y-2">
           <li>
@@ -110,8 +110,8 @@ export default function ForumFeedPage() {
         </ul>
       </aside>
 
-      {/* Posts Container */}
-      <section className="ml-64 max-w-3xl mx-auto">
+      {/* Centered Posts */}
+      <section className="flex-1 max-w-3xl mx-auto pr-40">
         <h1 className="text-3xl font-bold mb-8 text-center">Posts</h1>
 
         {filteredPosts.length === 0 ? (
