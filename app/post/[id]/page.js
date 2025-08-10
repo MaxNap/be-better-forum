@@ -31,7 +31,7 @@ export default function PostPage() {
   const [comments, setComments] = useState([]);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
-  const [likeDocId, setLikeDocId] = useState(null); // For deleting like
+  const [likeDocId, setLikeDocId] = useState(null);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -126,7 +126,7 @@ export default function PostPage() {
             onClick={() => router.push("/feed")}
             className="bg-white text-black px-4 py-2 rounded-full text-sm font-semibold hover:bg-gray-200 transition"
           >
-            ← Back to Feed
+            ← Back to Posts
           </button>
         </div>
 
