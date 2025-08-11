@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUserAuth } from "../../_utils/auth-context";
 import { db } from "../../_utils/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { toast } from "sonner"; // ✅ sonner toast
 
 export default function NewPostPage() {
   const { user } = useUserAuth();
@@ -19,26 +20,52 @@ export default function NewPostPage() {
     if (user === null) {
       router.push("/login");
     }
-  }, [user]);
+  }, [user, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // --- Hashtag validation rules ---
+    // 1) must start with #
+    // 2) no spaces anywhere
+    // 3) only letters/numbers allowed after #
+    const TAG_REGEX = /^#[A-Za-z0-9]+$/;
+
+    const parts = tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0); // ignore empty entries
+
+    const invalid = parts.find((t) => {
+      if (/\s/.test(t)) return true; // any space invalid
+      if (!t.startsWith("#")) return true; // must start with #
+      if (!TAG_REGEX.test(t)) return true; // only letters/numbers after #
+      return false;
+    });
+
+    if (invalid) {
+      toast.error(
+        'Invalid tag. Use "#habits" or "#focus" (letters/numbers only, no spaces).'
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
       await addDoc(collection(db, "posts"), {
         title,
         body,
-        tags: tags.split(",").map((tag) => tag.trim()),
+        tags: parts, // keep your original storage: trimmed comma-separated list
         authorId: user.uid,
         authorName: user.displayName || "Anonymous",
         createdAt: serverTimestamp(),
       });
 
-      // Redirect to home or profile
-      router.push("/");
+      router.push("/profile");
     } catch (error) {
       console.error("Failed to create post:", error);
+      toast.error("Failed to publish post.");
     } finally {
       setLoading(false);
     }
