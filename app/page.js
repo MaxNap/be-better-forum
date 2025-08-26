@@ -9,6 +9,8 @@ export default function HomePage() {
           Be Better
           <br />
           Together
+          <br />
+          New
         </h1>
         <p className="mt-4 text-gray-400 text-lg">
           Share your story. Get support. Stay consistent.
