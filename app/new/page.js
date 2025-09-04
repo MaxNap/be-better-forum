@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { useUserAuth } from "../../_utils/auth-context";
 import { db } from "../../_utils/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { toast } from "sonner"; // ✅ sonner toast
+import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+// ✅ Load TipTap only on the client; no @tiptap/* imports here
+const TipTapEditor = dynamic(() => import("../../components/TipTapEditor"), {
+  ssr: false,
+});
 
 export default function NewPostPage() {
   const { user } = useUserAuth();
@@ -13,7 +19,7 @@ export default function NewPostPage() {
 
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState("");
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(""); // will hold HTML from TipTap
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,20 +32,17 @@ export default function NewPostPage() {
     e.preventDefault();
 
     // --- Hashtag validation rules ---
-    // 1) must start with #
-    // 2) no spaces anywhere
-    // 3) only letters/numbers allowed after #
     const TAG_REGEX = /^#[A-Za-z0-9]+$/;
 
     const parts = tags
       .split(",")
       .map((t) => t.trim())
-      .filter((t) => t.length > 0); // ignore empty entries
+      .filter((t) => t.length > 0);
 
     const invalid = parts.find((t) => {
-      if (/\s/.test(t)) return true; // any space invalid
-      if (!t.startsWith("#")) return true; // must start with #
-      if (!TAG_REGEX.test(t)) return true; // only letters/numbers after #
+      if (/\s/.test(t)) return true;
+      if (!t.startsWith("#")) return true;
+      if (!TAG_REGEX.test(t)) return true;
       return false;
     });
 
@@ -50,13 +53,20 @@ export default function NewPostPage() {
       return;
     }
 
+    // require non-empty HTML content (strip tags quickly)
+    const plainText = body.replace(/<[^>]+>/g, "").trim();
+    if (!plainText) {
+      toast.error("Post content is required.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       await addDoc(collection(db, "posts"), {
         title,
-        body,
-        tags: parts, // keep your original storage: trimmed comma-separated list
+        body, // HTML from TipTap
+        tags: parts,
         authorId: user.uid,
         authorName: user.displayName || "Anonymous",
         createdAt: serverTimestamp(),
@@ -114,14 +124,10 @@ export default function NewPostPage() {
             <label htmlFor="body" className="block text-sm font-medium mb-1">
               Your Story
             </label>
-            <textarea
-              id="body"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={6}
-              placeholder="Write your post here..."
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black"
-              required
+            {/* TipTap returns { html, json, text } — we save HTML like before */}
+            <TipTapEditor
+              valueHTML={body}
+              onChange={(data) => setBody(data?.html ?? "")}
             />
           </div>
 

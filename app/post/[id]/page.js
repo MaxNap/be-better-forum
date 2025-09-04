@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getDoc,
@@ -11,16 +11,17 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
-  getDocs,
-  setDoc,
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../../../_utils/firebase";
 import { useUserAuth } from "../../../_utils/auth-context";
 import Comment from "../../../components/Comment";
 import CommentForm from "../../../components/CommentForm";
-import { FaHeart, FaRegHeart, FaComment } from "react-icons/fa";
+import { FaComment } from "react-icons/fa";
 import LikeButton from "../../../components/LikeButton";
+
+// 👇 NEW: sanitize rendered HTML
+import DOMPurify from "dompurify";
 
 export default function PostPage() {
   const { id } = useParams();
@@ -115,6 +116,15 @@ export default function PostPage() {
     }
   };
 
+  // 👇 NEW: sanitize HTML for safe rendering (keep highlight colors)
+  const safeBody = useMemo(() => {
+    const html = post?.body || "";
+    // Allow style for <mark> highlight colors, plus common attrs
+    return DOMPurify.sanitize(html, {
+      ALLOWED_ATTR: ["style", "class", "href", "target", "rel"],
+    });
+  }, [post?.body]);
+
   if (!post) return <p className="text-white p-8">Loading post...</p>;
 
   return (
@@ -151,9 +161,12 @@ export default function PostPage() {
 
         <hr className="border-gray-700 mb-6" />
 
-        {/* Post Body */}
+        {/* Post Body (sanitized HTML) */}
         <section className="text-lg leading-relaxed text-gray-200 mb-6 whitespace-pre-line">
-          {post.body}
+          <div
+            // keep your existing styles; just render sanitized HTML
+            dangerouslySetInnerHTML={{ __html: safeBody }}
+          />
         </section>
 
         {/* Reactions */}

@@ -24,6 +24,37 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 
+/* ---------- Helpers: strip tags, preserve line breaks, decode entities ---------- */
+const stripHTMLPreserveSpace = (html) => {
+  if (!html) return "";
+
+  return html
+    // <br> -> newline
+    .replace(/<br\s*\/?>/gi, "\n")
+    // opening OR closing block-level tags -> newline
+    // (covers p, div, li, headings, ul/ol)
+    .replace(/<\/?(p|div|li|h[1-6]|ul|ol)[^>]*>/gi, "\n")
+    // strip any remaining tags
+    .replace(/<[^>]*>/g, "")
+    // collapse multiple newlines
+    .replace(/\n{2,}/g, "\n");
+};
+
+const toPlainText = (html) => {
+  const withBreaks = stripHTMLPreserveSpace(html || "");
+  // Decode HTML entities in the browser
+  let decoded = withBreaks;
+  if (typeof window !== "undefined") {
+    const el = document.createElement("textarea");
+    el.innerHTML = withBreaks;
+    decoded = el.value;
+  }
+  // Normalize whitespace/newlines into single spaces for a clean one-line preview
+  return decoded.replace(/\s+/g, " ").trim();
+};
+
+
+
 export default function ForumFeedPage() {
   const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState("all"); // "all" | "liked"
@@ -163,9 +194,9 @@ export default function ForumFeedPage() {
       })
       .filter((p) => {
         if (!q) return true;
-        const title = (p.title || "").toLowerCase();
-        const body = (p.body || "").toLowerCase();
-        return title.includes(q) || body.includes(q);
+        const titleText = (p.title || "").toLowerCase();
+        const bodyText = toPlainText(p.body || "").toLowerCase(); // <-- strip tags for searching
+        return titleText.includes(q) || bodyText.includes(q);
       });
 
     // sort
@@ -404,48 +435,50 @@ export default function ForumFeedPage() {
         ) : (
           <>
             <ul className="space-y-6">
-              {currentPagePosts.map((post) => (
-                <li
-                  key={post.id}
-                  className="bg-white text-black p-6 rounded-xl shadow"
-                >
-                  <Link
-                    href={`/post/${post.id}`}
-                    className="text-xl font-bold hover:underline"
+              {currentPagePosts.map((post) => {
+                const preview = toPlainText(post.body || "");
+                const short = preview.length > 150 ? preview.slice(0, 150) + "..." : preview;
+
+                return (
+                  <li
+                    key={post.id}
+                    className="bg-white text-black p-6 rounded-xl shadow"
                   >
-                    {post.title}
-                  </Link>
+                    <Link
+                      href={`/post/${post.id}`}
+                      className="text-xl font-bold hover:underline"
+                    >
+                      {post.title}
+                    </Link>
 
-                  <p className="text-sm text-gray-600 mt-1">
-                    {(post.tags || []).join(", ")} •{" "}
-                    {post.createdAt?.toDate
-                      ? new Date(post.createdAt.toDate()).toLocaleDateString()
-                      : ""}
-                  </p>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {(post.tags || []).join(", ")} •{" "}
+                      {post.createdAt?.toDate
+                        ? new Date(post.createdAt.toDate()).toLocaleDateString()
+                        : ""}
+                    </p>
 
-                  <p className="mt-2 text-gray-800">
-                    {post.body?.length > 150
-                      ? post.body.slice(0, 150) + "..."
-                      : post.body}
-                  </p>
+                    {/* Preview without any HTML tags */}
+                    <p className="mt-2 text-gray-800">{short}</p>
 
-                  <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
-                    <span className="text-gray-500">
-                      Posted by: {post.authorUsername}
-                    </span>
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <FaHeart className="text-gray-600" />
-                        {likesCountMap[post.id] ?? (post.likes || 0)}
+                    <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+                      <span className="text-gray-500">
+                        Posted by: {post.authorUsername}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <FaComment className="text-gray-600" />
-                        {commentCountMap[post.id] ?? 0}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <FaHeart className="text-gray-600" />
+                          {likesCountMap[post.id] ?? (post.likes || 0)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <FaComment className="text-gray-600" />
+                          {commentCountMap[post.id] ?? 0}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
 
             {/* Pagination */}
@@ -458,7 +491,7 @@ export default function ForumFeedPage() {
                   className="px-3 py-2 border border-gray-600 rounded disabled:opacity-50 hover:bg-gray-800"
                   aria-label="Previous page"
                 >
-                  <FaChevronLeft /> {/* <-- icon instead of text */}
+                  <FaChevronLeft />
                 </button>
 
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(
@@ -485,7 +518,7 @@ export default function ForumFeedPage() {
                   className="px-3 py-2 border border-gray-600 rounded disabled:opacity-50 hover:bg-gray-800"
                   aria-label="Next page"
                 >
-                  <FaChevronRight /> {/* <-- icon instead of text */}
+                  <FaChevronRight />
                 </button>
               </nav>
             )}
